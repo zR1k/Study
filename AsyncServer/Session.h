@@ -3,9 +3,26 @@
 #include <boost/asio.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
+#include <queue>
 using boost::asio::ip::tcp;
 
 class Server;
+
+class MsgNode
+{
+    friend class CSession;
+public:
+    MsgNode(char * msg, int max_len) {
+        _data = new char[max_len];
+        memcpy(_data, msg, max_len);
+    }
+    ~MsgNode() {
+        delete[] _data;
+    }
+    int _cur_len;
+    int _max_len;
+    char* _data;
+};
 
 class Session:public std::enable_shared_from_this<Session>{
 public:
@@ -16,7 +33,7 @@ public:
     tcp::socket& Socket(){
         return _socket;
     }
-
+    void Send(char* msg, int max_length);
     void Start();
     std::string& GetUuID(){
         return _uuid;
@@ -30,4 +47,8 @@ private:
     char _data[max_length];
     Server* _server;
     std::string _uuid;
+    std::queue<std::shared_ptr<MsgNode> > _send_que;
+    std::mutex _send_lock;
 };
+
+
